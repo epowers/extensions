@@ -1,6 +1,6 @@
 ---
 name: docker
-description: Run Docker commands within a container environment, including starting the Docker daemon and managing containers. Use when building, running, or managing Docker containers and images.
+description: Use the rootless Docker engine already provided to this sandbox. Use when building, running, or managing containers and images.
 triggers:
 - docker
 - container
@@ -8,26 +8,33 @@ triggers:
 
 # Docker Usage Guide
 
-## Starting Docker in Container Environments
+A rootless Docker engine is already running for this sandbox and is exported through `DOCKER_HOST`.
+Run `docker` as the current user. Do not start a daemon and do not use `sudo`.
 
-Please check if docker is already installed. If so, to start Docker in a container environment:
-
-```bash
-# Start Docker daemon in the background
-sudo dockerd > /tmp/docker.log 2>&1 &
-
-# Wait for Docker to initialize
-sleep 5
-```
-
-On Windows, start Docker Desktop or the Docker service instead of running `sudo dockerd`; then run Docker commands from PowerShell without `sudo`.
-
-## Verifying Docker Installation
-
-To verify Docker is working correctly, run the hello-world container:
+## Start here
 
 ```bash
-sudo docker run hello-world
+docker version
+docker info
+docker ps
 ```
 
-PowerShell equivalent after Docker Desktop is running: `docker run hello-world`.
+All three work as the current user; `DOCKER_HOST` is already exported. `docker info` is the check that
+matters: it reports which engine you are talking to and where its storage lives.
+
+## Rules
+
+- Never run `dockerd`, `dockerd-rootless.sh` or `dockerd-rootless-setuptool.sh`. A daemon started inside
+  this sandbox cannot mount its own storage layers and fails with `operation not permitted`. The working
+  engine is already provided; starting another one does not help and leaves a broken daemon behind.
+- Never prefix `docker` with `sudo`. `sudo` drops `DOCKER_HOST`, after which the client falls back to
+  `/var/run/docker.sock`, a socket that does not exist here.
+- This engine is a separate container, so a bind-mounted path is resolved in the engine's filesystem, not
+  yours. A path that exists only in this sandbox (for example `/tmp/...`) appears empty inside the
+  container. Check before relying on one:
+  `docker run --rm -v /some/path:/mnt busybox ls /mnt`
+- Files the engine's containers write are owned by the daemon's uid, not by this user.
+- Do not verify the setup with `docker run hello-world`: the image registry is unreliable from here. Use
+  an image already listed by `docker images`.
+- `permission denied` on a `/var/run/user/<uid>/docker.sock` socket means the daemon's uid does not match
+  this user. That is a host misconfiguration: report it, do not work around it with `sudo`.

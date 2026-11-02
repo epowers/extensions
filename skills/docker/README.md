@@ -1,6 +1,10 @@
 # Docker
 
-Run Docker commands within a container environment, including starting the Docker daemon and managing containers. Use when building, running, or managing Docker containers and images.
+Use the rootless Docker engine already provided to this sandbox. Use when building, running, or managing containers and images.
+
+Forked from [OpenHands/extensions](https://github.com/OpenHands/extensions); the upstream version tells
+the agent to start its own daemon with `sudo`, which cannot work in a sandbox that is already
+given a sidecar engine.
 
 ## Triggers
 
@@ -11,24 +15,6 @@ This skill is activated by the following keywords:
 
 ## Details
 
-# Docker Usage Guide
-
-## Starting Docker in Container Environments
-
-Please check if docker is already installed. If so, to start Docker in a container environment:
-
-```bash
-# Start Docker daemon in the background
-sudo dockerd > /tmp/docker.log 2>&1 &
-
-# Wait for Docker to initialize
-sleep 5
-```
-
-## Verifying Docker Installation
-
-To verify Docker is working correctly, run the hello-world container:
-
-```bash
-sudo docker run hello-world
-```
+See [SKILL.md](SKILL.md). Summary: the engine comes from `DOCKER_HOST`; never start a daemon, never use
+`sudo`, verify with `docker info`, and remember that bind-mounted paths are resolved on the engine side,
+not in this sandbox.
